@@ -51,7 +51,8 @@ export const authOptions = {
     },
     pages: {
         signIn: "/login",
-        error: "/login", // Redirect error ke halaman login
+        error: "/login",
+        // Redirect error ke halaman login
     },
 };
 

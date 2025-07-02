@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcryptjs'; // 1. Tambahkan import bcryptjs
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
@@ -22,14 +22,12 @@ export async function POST(request) {
             return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // 2. Ganti perbandingan password plain text dengan bcrypt.compare()
         const passwordMatch = await bcrypt.compare(password, user.password);
 
         if (!passwordMatch) {
             return NextResponse.json({ success: false, error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Jangan kirim password kembali ke client
         const { password: _, ...userWithoutPassword } = user;
 
         return NextResponse.json({ success: true, user: userWithoutPassword });

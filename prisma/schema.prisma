@@ -7,166 +7,90 @@ generator client {
   provider = "prisma-client-js"
 }
 
-enum UserRole {
-  ADMIN
-  TEACHER
-  PARENT
-}
-
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
-  name      String
-  role      UserRole
+  name      String?
+
+  cart      Cart?
+  orders    Order[]  // Add this relation
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  adminProfile   Admin?
-  teacherProfile Teacher?
-  parent         Parent? // <--- UBAH NAMA RELASI INI (atau sesuaikan di API)
 }
 
-model Admin {
-  id     String @id @default(cuid())
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @unique
-  // Tambahkan field spesifik admin jika ada
+model Product {
+  id          String  @id @default(cuid())
+  name        String
+  description String? @db.Text
+  price       Float
+  imageUrl    String?
+  stock       Int     @default(0)
+
+  cartItems   CartItem[]
+  orderItems  OrderItem[]  // Add this relation
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
-model Teacher {
+model Cart {
   id        String   @id @default(cuid())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String   @unique
-  nip       String?  @unique // Nomor Induk Pegawai, opsional
 
-  classManaged Class?   @relation("ClassTeacher") // Walikelas untuk satu kelas
-  progressReportsSubmitted ProgressReport[] @relation("TeacherReports")
+  items     CartItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Parent {
-  id     String @id @default(cuid())
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String @unique
+model CartItem {
+  id        String  @id @default(cuid())
+  quantity  Int
 
-  children Student[] @relation("ParentChildren") // Orang tua bisa memiliki banyak anak
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Student {
-  id        String   @id @default(cuid())
-  name      String
-  nis       String?  @unique // Nomor Induk Siswa, opsional
-  classId   String?
-  class     Class?   @relation(fields: [classId], references: [id], onDelete: SetNull) // Siswa tergabung dalam satu kelas
-
-  parents Parent[] @relation("ParentChildren") // Siswa bisa memiliki lebih dari satu orang tua/wali
-
-  progressReports ProgressReport[]
-  selfDevelopments SelfDevelopment[] // <--- TAMBAHKAN RELASI INI
-  attendances     Attendance[]      // <--- TAMBAHKAN RELASI INI
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Class {
-  id      String  @id @default(cuid())
-  name    String  @unique // Contoh: "Kelas 10A", "Kelas XI IPA 1"
-  year    Int     // Tahun ajaran, contoh: 2024
-
-  teacherId String? @unique // ID Walikelas yang mengelola kelas ini
-  teacher   Teacher? @relation("ClassTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
-
-  students Student[]
-  subjects Subject[] @relation("ClassSubjects") // Mata pelajaran yang ada di kelas ini
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Subject {
-  id   String @id @default(cuid())
-  name String @unique // Contoh: "Matematika", "Bahasa Indonesia"
-  code String? @unique // Kode mata pelajaran, opsional
-
-  classes         Class[]          @relation("ClassSubjects")
-  progressReports ProgressReport[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ProgressReport {
-  id        String   @id @default(cuid())
-  // Sesuaikan field ini dengan kebutuhan API/Frontend
-  tugas     Float?   // Nilai tugas
-  uts       Float?   // Nilai UTS
-  uas       Float?   // Nilai UAS
-  finalGrade Float?  // Mungkin nilai akhir jika dihitung
-  predicate String?  // Contoh: "Sangat Baik", "Baik", "Cukup"
-  comment   String?
-  reportDate DateTime @default(now())
-
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  subjectId String
-  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Restrict)
-
-  teacherId String
-  teacher   Teacher @relation("TeacherReports", fields: [teacherId], references: [id], onDelete: Restrict)
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId    String
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([studentId, subjectId, reportDate])
+  @@unique([productId, cartId])
 }
 
-// TAMBAHKAN MODEL BARU INI
-model SelfDevelopment {
-  id          String   @id @default(cuid())
-  activity    String   // Nama kegiatan pengembangan diri
-  notes       String?  // Catatan dari guru
-  reportedDate DateTime @default(now())
+enum OrderStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
 
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  totalAmount     Float
+  status          OrderStatus @default(PENDING)
+  paymentToken    String?     @unique
+  paymentRedirectUrl String?  @db.Text
 
-  // teacherId String? // Opsional: Guru yang melaporkan
-  // teacher   Teacher? @relation(fields: [teacherId], references: [id])
+  items           OrderItem[]
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float // Harga produk saat order dibuat
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// TAMBAHKAN MODEL BARU INI
-enum AttendanceStatus {
-  PRESENT
-  ABSENT
-  SICK
-  PERMISSION
-}
-
-model Attendance {
-  id        String           @id @default(cuid())
-  date      DateTime         // Tanggal presensi (bisa diatur hanya tanggal tanpa waktu jika perlu)
-  status    AttendanceStatus // Status kehadiran
-  notes     String?          // Catatan tambahan (misalnya alasan izin)
-
-  studentId String
-  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
-
-  // recordedById String? // Opsional: User yang mencatat (misalnya guru)
-  // recordedBy User? @relation(fields: [recordedById], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([studentId, date]) // Pastikan satu siswa hanya punya satu catatan presensi per hari
 }

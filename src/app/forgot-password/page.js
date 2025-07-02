@@ -1,4 +1,4 @@
-'use client'; // Required for Framer Motion components
+'use client';
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -59,7 +59,7 @@ export default function ForgotPasswordPage() {
             >
               <button
                 className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transform transition-all duration-150 ease-in-out hover:scale-105"
-                type="submit" // Changed to submit
+                type="submit"
               >
                 Send Reset Link
               </button>

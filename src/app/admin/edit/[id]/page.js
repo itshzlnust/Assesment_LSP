@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 
-export default function AdminPage() {
+export default function EditProductPage({ params }) {
+    const router = useRouter();
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -16,7 +18,37 @@ export default function AdminPage() {
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isFetching, setIsFetching] = useState(true);
     const [message, setMessage] = useState('');
+
+    useEffect(() => {
+        if (params.id) {
+            fetchProduct();
+        }
+    }, [params.id]);
+
+    const fetchProduct = async () => {
+        try {
+            const response = await fetch(`/api/admin/products/${params.id}`);
+            if (response.ok) {
+                const product = await response.json();
+                setFormData({
+                    name: product.name,
+                    description: product.description || '',
+                    price: product.price.toString(),
+                    stock: product.stock.toString(),
+                    imageUrl: product.imageUrl || ''
+                });
+                setImagePreview(product.imageUrl || '');
+            } else {
+                setMessage('❌ Produk tidak ditemukan');
+            }
+        } catch (error) {
+            setMessage('❌ Gagal memuat data produk');
+        } finally {
+            setIsFetching(false);
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -81,7 +113,7 @@ export default function AdminPage() {
                 imageUrl = uploadResult.imageUrl;
             }
 
-            // Submit data produk
+            // Update data produk
             const productData = {
                 name: formData.name,
                 description: formData.description,
@@ -90,8 +122,8 @@ export default function AdminPage() {
                 imageUrl: imageUrl
             };
 
-            const response = await fetch('/api/admin/products', {
-                method: 'POST',
+            const response = await fetch(`/api/admin/products/${params.id}`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -100,22 +132,16 @@ export default function AdminPage() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Gagal menambah produk');
+                throw new Error(errorData.error || 'Gagal mengupdate produk');
             }
 
             const result = await response.json();
-            setMessage('✅ Produk berhasil ditambahkan!');
+            setMessage('✅ Produk berhasil diupdate!');
 
-            // Reset form
-            setFormData({
-                name: '',
-                description: '',
-                price: '',
-                stock: '',
-                imageUrl: ''
-            });
-            setImageFile(null);
-            setImagePreview('');
+            // Redirect ke halaman admin products setelah 2 detik
+            setTimeout(() => {
+                router.push('/admin/products');
+            }, 2000);
 
         } catch (error) {
             setMessage(`❌ Error: ${error.message}`);
@@ -123,6 +149,17 @@ export default function AdminPage() {
             setIsLoading(false);
         }
     };
+
+    if (isFetching) {
+        return (
+            <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p>Memuat data produk...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-900 text-white">
@@ -136,17 +173,14 @@ export default function AdminPage() {
                 >
                     <div className="flex items-center justify-between mb-6">
                         <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-teal-500">
-                            Admin Panel - Tambah Produk
+                            Edit Produk
                         </h1>
                         <div className="space-x-4">
-                            <Link href="/admin/dashboard" className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
-                                🏠 Dashboard
+                            <Link href="/admin/products" className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                                Kembali ke Kelola Produk
                             </Link>
-                            <Link href="/admin/products" className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                                📦 Kelola Produk
-                            </Link>
-                            <Link href="/user" className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
-                                Kembali ke Katalog
+                            <Link href="/admin" className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                Tambah Produk Baru
                             </Link>
                         </div>
                     </div>
@@ -160,7 +194,7 @@ export default function AdminPage() {
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
                         <div className="bg-gray-800 p-6 rounded-lg shadow-lg">
-                            <h2 className="text-2xl font-bold mb-6">Informasi Produk</h2>
+                            <h2 className="text-2xl font-bold mb-6">Edit Informasi Produk</h2>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 {/* Nama Produk */}
@@ -261,7 +295,7 @@ export default function AdminPage() {
                                     disabled={isLoading}
                                     className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white py-3 rounded-lg font-bold text-lg hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-300"
                                 >
-                                    {isLoading ? '⏳ Menambah Produk...' : '➕ Tambah Produk'}
+                                    {isLoading ? '⏳ Mengupdate Produk...' : '✏️ Update Produk'}
                                 </button>
 
                                 {/* Message */}

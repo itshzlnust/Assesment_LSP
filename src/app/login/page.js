@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Import useRouter
+import { useRouter } from 'next/navigation'; 
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -28,24 +28,8 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (data.success && data.user) {
-        // Simpan data user (misalnya di localStorage untuk contoh sederhana)
-        // Untuk produksi, gunakan NextAuth.js atau manajemen sesi yang lebih baik
         localStorage.setItem('user', JSON.stringify(data.user));
-
-        // Arahkan berdasarkan role
-        switch (data.user.role) {
-          case 'ADMIN':
-            router.push('/admin');
-            break;
-          case 'TEACHER':
-            router.push('/wali-kelas'); // Sesuaikan dengan path dashboard guru Anda
-            break;
-          case 'PARENT':
-            router.push('/'); // Arahkan ke homepage atau dashboard orang tua
-            break;
-          default:
-            router.push('/'); // Fallback
-        }
+        router.push('/user'); 
       } else {
         setError(data.error || 'Login failed. Please try again.');
       }
@@ -143,7 +127,7 @@ export default function LoginPage() {
             >
               <button
                 className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transform transition-all duration-150 ease-in-out hover:scale-105 disabled:opacity-50"
-                type="submit" // Ubah type menjadi submit
+                type="submit"
                 disabled={isLoading}
               >
                 {isLoading ? 'Signing In...' : 'Sign In'}
@@ -156,7 +140,6 @@ export default function LoginPage() {
             transition={{ duration: 0.5, delay: 1.2 }}
             className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400"
           >
-            {/* Anda bisa menambahkan link "Don't have an account?" di sini jika perlu */}
           </motion.p>
         </div>
       </motion.main>
