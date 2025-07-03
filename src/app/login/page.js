@@ -133,6 +133,21 @@ export default function LoginPage() {
                 {isLoading ? 'Signing In...' : 'Sign In'}
               </button>
             </motion.div>
+
+            {/* Register Link */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 1.1 }}
+              className="mt-4 text-center"
+            >
+              {/* <p className="text-sm text-gray-600 dark:text-gray-400">
+                Don&apos;t have an account?{' '}
+                <a href="/register" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold">
+                  Register here
+                </a>
+              </p> */}
+            </motion.div>
           </motion.form>
           <motion.p
             initial={{ opacity: 0 }}

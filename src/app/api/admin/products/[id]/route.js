@@ -1,136 +1,76 @@
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function DELETE(request, { params }) {
-    try {
-        const { id } = params;
-
-        if (!id) {
-            return new Response(JSON.stringify({
-                error: 'ID produk diperlukan'
-            }), { status: 400 });
-        }
-
-        // Cek apakah produk ada
-        const existingProduct = await prisma.product.findUnique({
-            where: { id: parseInt(id) }
-        });
-
-        if (!existingProduct) {
-            return new Response(JSON.stringify({
-                error: 'Produk tidak ditemukan'
-            }), { status: 404 });
-        }
-
-        // Hapus produk
-        await prisma.product.delete({
-            where: { id: parseInt(id) }
-        });
-
-        return new Response(JSON.stringify({
-            success: true,
-            message: 'Produk berhasil dihapus'
-        }), { status: 200 });
-
-    } catch (error) {
-        console.error("Delete product error:", error);
-        return new Response(JSON.stringify({
-            error: 'Gagal menghapus produk',
-            details: error.message
-        }), { status: 500 });
-    }
-}
-
+// GET - Mengambil satu produk berdasarkan ID
 export async function GET(request, { params }) {
+    const { id } = params;
+
     try {
-        const { id } = params;
-
-        if (!id) {
-            return new Response(JSON.stringify({
-                error: 'ID produk diperlukan'
-            }), { status: 400 });
-        }
-
         const product = await prisma.product.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: id },
         });
 
         if (!product) {
-            return new Response(JSON.stringify({
-                error: 'Produk tidak ditemukan'
-            }), { status: 404 });
+            return NextResponse.json({ message: 'Produk tidak ditemukan.' }, { status: 404 });
         }
 
-        return new Response(JSON.stringify(product), { status: 200 });
-
+        return NextResponse.json(product);
     } catch (error) {
-        console.error("Get product error:", error);
-        return new Response(JSON.stringify({
-            error: 'Gagal mengambil data produk',
-            details: error.message
-        }), { status: 500 });
+        console.error('Error fetching product:', error);
+        return NextResponse.json({ message: 'Terjadi kesalahan pada server.' }, { status: 500 });
     }
 }
 
+// PUT - Memperbarui produk berdasarkan ID
 export async function PUT(request, { params }) {
+    const { id } = params;
+
     try {
-        const { id } = params;
-        const { name, description, price, stock, imageUrl } = await request.json();
+        const body = await request.json();
+        const { name, description, price, stock, imageUrl } = body;
 
-        if (!id) {
-            return new Response(JSON.stringify({
-                error: 'ID produk diperlukan'
-            }), { status: 400 });
+        if (!name || price === undefined || stock === undefined) {
+            return NextResponse.json({ message: 'Nama, harga, dan stok harus diisi.' }, { status: 400 });
         }
 
-        // Validasi input
-        if (!name || !price || stock === undefined) {
-            return new Response(JSON.stringify({
-                error: 'Nama produk, harga, dan stok wajib diisi'
-            }), { status: 400 });
-        }
-
-        if (price < 0 || stock < 0) {
-            return new Response(JSON.stringify({
-                error: 'Harga dan stok tidak boleh negatif'
-            }), { status: 400 });
-        }
-
-        // Cek apakah produk ada
-        const existingProduct = await prisma.product.findUnique({
-            where: { id: parseInt(id) }
-        });
-
-        if (!existingProduct) {
-            return new Response(JSON.stringify({
-                error: 'Produk tidak ditemukan'
-            }), { status: 404 });
-        }
-
-        // Update produk
         const updatedProduct = await prisma.product.update({
-            where: { id: parseInt(id) },
+            where: { id: id },
             data: {
-                name: name.trim(),
-                description: description?.trim() || null,
-                price: parseFloat(price),
-                stock: parseInt(stock),
-                imageUrl: imageUrl?.trim() || null,
-                updatedAt: new Date()
+                name,
+                description,
+                price: Number(price),
+                stock: Number(stock),
+                imageUrl,
             },
         });
 
-        return new Response(JSON.stringify({
-            success: true,
-            product: updatedProduct
-        }), { status: 200 });
-
+        return NextResponse.json(updatedProduct);
     } catch (error) {
-        console.error("Update product error:", error);
-        return new Response(JSON.stringify({
-            error: 'Gagal mengupdate produk',
-            details: error.message
-        }), { status: 500 });
+        console.error(`Error updating product ${id}:`, error);
+        if (error.code === 'P2025') { // Prisma code for record not found
+            return NextResponse.json({ message: 'Produk tidak ditemukan untuk diperbarui.' }, { status: 404 });
+        }
+        return NextResponse.json({ message: 'Gagal memperbarui produk.' }, { status: 500 });
+    }
+}
+
+// DELETE - Menghapus produk berdasarkan ID
+export async function DELETE(request, { params }) {
+    const { id } = params;
+
+    try {
+        await prisma.product.delete({
+            where: { id: id },
+        });
+
+        return NextResponse.json({ message: 'Produk berhasil dihapus.' });
+    } catch (error) {
+        console.error(`Error deleting product ${id}:`, error);
+        if (error.code === 'P2025') { // Prisma code for record not found
+            return NextResponse.json({ message: 'Produk tidak ditemukan untuk dihapus.' }, { status: 404 });
+        }
+        return NextResponse.json({ message: 'Gagal menghapus produk.' }, { status: 500 });
     }
 }
